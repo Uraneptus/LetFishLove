@@ -28,7 +28,7 @@ def main():
         build.store(f, encoding="utf-8")
 
     os.system('git commit -a -m build')
-    os.system('git push origin master release-{}-{}'.format(mc_version, mod_version))
+    os.system('git push origin 1.19.x release-{}-{}'.format(mc_version, mod_version))
 
 
 if __name__ == '__main__':
