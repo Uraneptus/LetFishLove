@@ -39,8 +39,6 @@ public class LetFishLoveMod {
         bus.addListener(this::gatherData);
         bus.addListener(this::setup);
 
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, LFLConfig.COMMON);
-
         LFLBlocks.BLOCKS.register(bus);
         LFLItems.ITEMS.register(bus);
 

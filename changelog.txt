@@ -1,0 +1,2 @@
+- Update all texture to have the colors fit the fish item textures.
+- The min/max value for the hatch amount and the hatchDuration are now set through data files. Thus, the config has been removed.
