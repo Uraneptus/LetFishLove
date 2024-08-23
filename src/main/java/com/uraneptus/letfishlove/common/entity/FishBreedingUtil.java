@@ -1,18 +1,27 @@
 package com.uraneptus.letfishlove.common.entity;
 
+import com.uraneptus.letfishlove.LetFishLoveMod;
 import com.uraneptus.letfishlove.common.capabilities.FishBreedingCap;
 import com.uraneptus.letfishlove.common.capabilities.FishBreedingCapAttacher;
 import com.uraneptus.letfishlove.core.other.LFLEntityTags;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.registries.ForgeRegistries;
+
+import javax.annotation.Nullable;
 
 public class FishBreedingUtil {
 
@@ -20,6 +29,24 @@ public class FishBreedingUtil {
         if (!pPlayer.getAbilities().instabuild) {
             pStack.shrink(1);
         }
+    }
+
+    @Nullable
+    public static TagKey<Item> getTemptationItems(EntityType<?> entityType) {
+        ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(entityType);
+        if (rl != null) {
+            return TagKey.create(Registries.ITEM, LetFishLoveMod.modPrefix("fish_food/" + rl.getNamespace() + "/" + rl.getPath()));
+        }
+        return null;
+    }
+
+    @Nullable
+    public static TagKey<Block> getRoeBlock(EntityType<?> entityType) {
+        ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(entityType);
+        if (rl != null) {
+            return TagKey.create(Registries.BLOCK, LetFishLoveMod.modPrefix("fish_roe/" + rl.getNamespace() + "/" + rl.getPath()));
+        }
+        return null;
     }
 
     public static boolean isBreedable(WaterAnimal entity) {

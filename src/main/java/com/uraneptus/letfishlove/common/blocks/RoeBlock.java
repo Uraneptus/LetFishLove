@@ -1,7 +1,8 @@
 package com.uraneptus.letfishlove.common.blocks;
 
-import com.uraneptus.letfishlove.LFLConfig;
 import com.uraneptus.letfishlove.LetFishLoveMod;
+import com.uraneptus.letfishlove.common.RoeHatchDataReloadListener;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -9,10 +10,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.animal.*;
+import net.minecraft.world.entity.animal.TropicalFish;
+import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -32,7 +33,8 @@ import java.util.stream.Collectors;
 
 public class RoeBlock extends Block {
     private Supplier<EntityType<?>> fish;
-    private UniformInt hatchAmount;
+    protected boolean fromBreeding = false;
+    private Entity parentEntity;
 
     protected static final VoxelShape SHAPE = Block.box(0.0D, 0.0D, 0.0D, 16.0D, 1.5D, 16.0D);
 
@@ -56,11 +58,12 @@ public class RoeBlock extends Block {
         pLevel.scheduleTick(pPos, this, getHatchDelay(pLevel.getRandom()));
     }
 
-    private static int getHatchDelay(RandomSource pRandom) {
+    private int getHatchDelay(RandomSource pRandom) {
         if (!FMLEnvironment.production) {
             return pRandom.nextInt(36, 120);
         }
-        return pRandom.nextInt(LFLConfig.MIN_HATCH_DURATION.get(), LFLConfig.MAX_HATCH_DURATION.get());
+        RoeHatchDataReloadListener.RoeData roeData = RoeHatchDataReloadListener.ROE_HATCH_DATA_MAP.get(ForgeRegistries.BLOCKS.getKey(this.asBlock()));
+        return pRandom.nextInt(roeData.minHatchDuration(), roeData.maxHatchDuration());
     }
 
     @Override
@@ -101,7 +104,8 @@ public class RoeBlock extends Block {
     }
 
     protected void spawnFish(ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
-        int i = pRandom.nextInt(calculateHatchAmount(pLevel).getMinValue(), calculateHatchAmount(pLevel).getMaxValue());
+        RoeHatchDataReloadListener.RoeData roeData = RoeHatchDataReloadListener.ROE_HATCH_DATA_MAP.get(ForgeRegistries.BLOCKS.getKey(this.asBlock()));
+        int i = pRandom.nextInt(roeData.minHatchAmount(), roeData.maxHatchAmount());
 
         for(int j = 1; j <= i; ++j) {
             if (createEntity(pLevel) instanceof WaterAnimal waterAnimal) {
@@ -110,23 +114,22 @@ public class RoeBlock extends Block {
                 int k = pRandom.nextInt(1, 361);
                 waterAnimal.moveTo(d0, (double)pPos.getY() - 0.5D, d1, (float)k, 0.0F);
                 waterAnimal.setPersistenceRequired();
+                handleVariantFish(waterAnimal, pLevel, pPos, pRandom);
                 pLevel.addFreshEntity(waterAnimal);
             }
         }
     }
 
-    protected UniformInt calculateHatchAmount(ServerLevel pLevel) {
-        if (createEntity(pLevel) instanceof Cod) {
-            return UniformInt.of(LFLConfig.COD_HATCH_AMOUNT_MIN.get(), LFLConfig.COD_HATCH_AMOUNT_MAX.get());
-        } else if (createEntity(pLevel) instanceof Pufferfish) {
-            return UniformInt.of(LFLConfig.PUFFERFISH_HATCH_AMOUNT_MIN.get(), LFLConfig.PUFFERFISH_HATCH_AMOUNT_MAX.get());
-        } else if (createEntity(pLevel) instanceof Salmon) {
-            return UniformInt.of(LFLConfig.SALMON_HATCH_AMOUNT_MIN.get(), LFLConfig.SALMON_HATCH_AMOUNT_MAX.get());
-        } else if (createEntity(pLevel) instanceof TropicalFish) {
-            return UniformInt.of(LFLConfig.TROPICAL_FISH_HATCH_AMOUNT_MIN.get(), LFLConfig.TROPICAL_FISH_HATCH_AMOUNT_MAX.get());
+    protected void handleVariantFish(WaterAnimal waterAnimal, ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
+        if (waterAnimal instanceof TropicalFish newtropicalFish) {
+            if (fromBreeding && this.getParentEntity() instanceof TropicalFish parentFish) {
+                newtropicalFish.setPackedVariant(parentFish.getPackedVariant());
+            } else {
+                TropicalFish.Variant randomVariant = Util.getRandom(TropicalFish.COMMON_VARIANTS, pRandom);
+                int variantId = randomVariant.getPackedId();
+                newtropicalFish.setPackedVariant(TropicalFish.packVariant(TropicalFish.getPattern(variantId), TropicalFish.getBaseColor(variantId), TropicalFish.getPatternColor(variantId)));
+            }
         }
-        //FALLBACK
-        return UniformInt.of(0, 1);
     }
 
     public Entity createEntity(Level pLevel) {
@@ -151,12 +154,13 @@ public class RoeBlock extends Block {
         this.fish = fish;
     }
 
-    public UniformInt getHatchAmount() {
-        return hatchAmount;
+    public Entity getParentEntity() {
+        return parentEntity;
     }
 
-    public void setHatchAmount(UniformInt hatchAmount) {
-        this.hatchAmount = hatchAmount;
+    public void setParentEntity(Entity parentEntity) {
+        this.parentEntity = parentEntity;
+        this.fromBreeding = true;
     }
 
     public static Iterable<Block> getAllBlocks() {

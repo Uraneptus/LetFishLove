@@ -1,12 +1,11 @@
 package com.uraneptus.letfishlove.common.entity;
 
 import com.uraneptus.letfishlove.LetFishLoveMod;
-import com.uraneptus.letfishlove.common.blocks.TropicalFishRoeBlock;
+import com.uraneptus.letfishlove.common.blocks.RoeBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
-import net.minecraft.world.entity.animal.TropicalFish;
 import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -50,23 +49,20 @@ public class FishLayRoeGoal extends MoveToBlockGoal {
     public void stop() {
         Level level = this.fish.level();
         BlockPos fishPos = this.getMoveToTarget();
-        String fishTypeName = ForgeRegistries.ENTITY_TYPES.getKey(fish.getType()).getPath();
-        TagKey<Block> blockTag = TagKey.create(Registries.BLOCK, LetFishLoveMod.modPrefix("fish_roe/" + fishTypeName));
-        List<Block> roeBlocks = ForgeRegistries.BLOCKS.tags().getTag(blockTag).stream().toList();
-        if (!roeBlocks.isEmpty()) {
-            int entry = 0;
-            if (roeBlocks.size() > 1) {
-                entry = level.getRandom().nextIntBetweenInclusive(0, roeBlocks.size() - 1);
-            }
+        TagKey<Block> blockTag = FishBreedingUtil.getRoeBlock(fish.getType());
+        if (blockTag != null) {
+            List<Block> roeBlocks = ForgeRegistries.BLOCKS.tags().getTag(blockTag).stream().toList();
+            if (!roeBlocks.isEmpty()) {
+                int entry = 0;
+                if (roeBlocks.size() > 1) {
+                    entry = level.getRandom().nextIntBetweenInclusive(0, roeBlocks.size() - 1);
+                }
 
-            Block roe = roeBlocks.get(entry);
-            if (fish instanceof TropicalFish tropicalFish && roe instanceof TropicalFishRoeBlock roeBlock) {
-                roeBlock.setFishVariant(tropicalFish.getPackedVariant());
-                level.setBlockAndUpdate(fishPos, roeBlock.defaultBlockState());
-            } else {
+                RoeBlock roe = (RoeBlock)roeBlocks.get(entry);
+                roe.setParentEntity(fish);
                 level.setBlockAndUpdate(fishPos, roe.defaultBlockState());
             }
+            FishBreedingUtil.getFishCap(fish).setPregnant(false, true);
         }
-        FishBreedingUtil.getFishCap(fish).setPregnant(false, true);
     }
 }
